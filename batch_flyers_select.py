@@ -71,7 +71,7 @@ def create_flyer(qr_code, save_path, flyer_width=850, flyer_height=1100,
     flyer.save(save_path)
     print(f"Saved flyer: {save_path}")
 
-def prompt_int_custom(title, prompt, min_val, max_val, default):
+def prompt_int_custom(root, title, prompt, min_val, max_val, default):
     value = None
 
     def on_ok():
@@ -86,10 +86,11 @@ def prompt_int_custom(title, prompt, min_val, max_val, default):
         except ValueError:
             error_label.config(text="Please enter a valid integer.")
 
-    dialog = tk.Tk()
+    dialog = tk.Toplevel(root)
     dialog.title(title)
     dialog.geometry("400x180")
     dialog.resizable(False, False)
+    dialog.grab_set()
 
     label = tk.Label(dialog, text=prompt, wraplength=380, justify="left", font=("Arial", 11))
     label.pack(pady=(15, 8), padx=10)
@@ -111,10 +112,10 @@ def prompt_int_custom(title, prompt, min_val, max_val, default):
     cancel_btn = tk.Button(btn_frame, text="Cancel", width=10, command=dialog.destroy)
     cancel_btn.pack(side="left", padx=10)
 
-    dialog.mainloop()
+    root.wait_window(dialog)
     return value
 
-def prompt_choice_custom(title, prompt, options, default):
+def prompt_choice_custom(root, title, prompt, options, default):
     value = None
 
     def on_ok():
@@ -126,10 +127,11 @@ def prompt_choice_custom(title, prompt, options, default):
         else:
             error_label.config(text=f"Choose one: {', '.join(options)}")
 
-    dialog = tk.Tk()
+    dialog = tk.Toplevel(root)
     dialog.title(title)
     dialog.geometry("400x180")
     dialog.resizable(False, False)
+    dialog.grab_set()
 
     label = tk.Label(dialog, text=prompt + "\nOptions: " + ", ".join(options),
                      wraplength=380, justify="left", font=("Arial", 11))
@@ -152,12 +154,12 @@ def prompt_choice_custom(title, prompt, options, default):
     cancel_btn = tk.Button(btn_frame, text="Cancel", width=10, command=dialog.destroy)
     cancel_btn.pack(side="left", padx=10)
 
-    dialog.mainloop()
+    root.wait_window(dialog)
     return value or default
 
 def main():
     root = tk.Tk()
-    root.withdraw()
+    root.withdraw()  # Hide main window
 
     input_folder = filedialog.askdirectory(title="Select folder with QR codes")
     if not input_folder:
@@ -168,73 +170,45 @@ def main():
     os.makedirs(output_folder, exist_ok=True)
 
     files = [f for f in os.listdir(input_folder) if f.lower().endswith(".png")]
-
     if not files:
         print(f"No PNG files found in {input_folder}.")
         return
 
-    num_variations = prompt_int_custom(
-        "Flyers per QR",
-        "How many flyer variations to generate per QR code?\n"
-        "(e.g., 5 means 5 slightly different flyers per each QR code image.)",
+    num_variations = prompt_int_custom(root, "Flyers per QR",
+        "How many flyer variations to generate per QR code?\n(e.g., 5 means 5 flyers per QR image.)",
         1, 50, 5)
 
-    title_font_min = prompt_int_custom(
-        "Title Font Size Minimum",
-        "Minimum font size for the flyer title text (■ SIGNAL FOUND ■).\n"
-        "Bigger numbers = bigger text. Recommended 24–72.",
+    title_font_min = prompt_int_custom(root, "Title Font Size Minimum",
+        "Minimum font size for the flyer title text (■ SIGNAL FOUND ■).\nBigger numbers = bigger text. Recommended 24–72.",
         24, 72, 30)
 
-    title_font_max = prompt_int_custom(
-        "Title Font Size Maximum",
-        "Maximum font size for the flyer title text.\n"
-        f"Must be ≥ minimum ({title_font_min}).",
+    title_font_max = prompt_int_custom(root, "Title Font Size Maximum",
+        f"Maximum font size for the flyer title text.\nMust be ≥ minimum ({title_font_min}).",
         title_font_min, 72, 42)
 
-    body_font_min = prompt_int_custom(
-        "Body Font Size Minimum",
-        "Minimum font size for subtitle and info text.\n"
-        "Recommended 12–36 for readability.",
+    body_font_min = prompt_int_custom(root, "Body Font Size Minimum",
+        "Minimum font size for subtitle and info text.\nRecommended 12–36 for readability.",
         12, 36, 16)
 
-    body_font_max = prompt_int_custom(
-        "Body Font Size Maximum",
-        "Maximum font size for subtitle and info text.\n"
-        f"Must be ≥ minimum ({body_font_min}).",
+    body_font_max = prompt_int_custom(root, "Body Font Size Maximum",
+        f"Maximum font size for subtitle and info text.\nMust be ≥ minimum ({body_font_min}).",
         body_font_min, 36, 20)
 
-    max_qr_rotation = prompt_int_custom(
-        "Max QR Rotation (degrees)",
-        "Maximum degrees to randomly rotate the QR code on the flyer.\n"
-        "0 = no rotation, higher = more tilt (recommended ≤20).",
+    max_qr_rotation = prompt_int_custom(root, "Max QR Rotation (degrees)",
+        "Maximum degrees to randomly rotate the QR code on the flyer.\n0 = no rotation, higher = more tilt (recommended ≤20).",
         0, 20, 5)
 
-    max_qr_offset = prompt_int_custom(
-        "Max QR Offset (pixels)",
-        "Maximum pixel offset in X and Y directions to randomly move the QR code.\n"
-        "Higher values create a more chaotic look (recommended ≤30).",
+    max_qr_offset = prompt_int_custom(root, "Max QR Offset (pixels)",
+        "Maximum pixel offset in X and Y directions to randomly move the QR code.\nHigher values create a more chaotic look (recommended ≤30).",
         0, 30, 15)
 
-    glitch_level = prompt_choice_custom(
-        "Glitch Intensity",
-        "Choose glitch intensity affecting title text layering and offset.\n"
-        "Options:\n"
-        "- none: clean text\n"
-        "- low: subtle layering\n"
-        "- medium: noticeable glitch effect\n"
-        "- high: strong glitch effect",
-        ['none', 'low', 'medium', 'high'],
-        'medium')
+    glitch_level = prompt_choice_custom(root, "Glitch Intensity",
+        "Choose glitch intensity affecting title text layering and offset.\nOptions:\n- none: clean text\n- low: subtle layering\n- medium: noticeable glitch effect\n- high: strong glitch effect",
+        ['none', 'low', 'medium', 'high'], 'medium')
 
-    title_style = prompt_choice_custom(
-        "Title Style",
-        "Choose style for the flyer title text.\n"
-        "Options:\n"
-        "- normal: simple text\n"
-        "- glitch: multi-layer offset for glitch effect\n"
-        "- shadow: drop shadow behind text",
-        ['normal', 'glitch', 'shadow'],
-        'glitch')
+    title_style = prompt_choice_custom(root, "Title Style",
+        "Choose style for the flyer title text.\nOptions:\n- normal: simple text\n- glitch: multi-layer offset for glitch effect\n- shadow: drop shadow behind text",
+        ['normal', 'glitch', 'shadow'], 'glitch')
 
     glitch_map = {'none': 0, 'low': 1, 'medium': 3, 'high': 6}
     glitch_offset = glitch_map.get(glitch_level, 3)
@@ -243,27 +217,32 @@ def main():
 
     for file in files:
         qr_path = os.path.join(input_folder, file)
-        qr_code = Image.open(qr_path).convert("L")
+        qr_img = Image.open(qr_path).convert("L")
 
-        for i in range(1, num_variations + 1):
+        for i in range(num_variations):
+            flyer_name = f"flyer_{os.path.splitext(file)[0]}_{i+1}.png"
+            flyer_path = os.path.join(output_folder, flyer_name)
+
             title_font_size = random.randint(title_font_min, title_font_max)
             body_font_size = random.randint(body_font_min, body_font_max)
-            qr_offset = (random.randint(-max_qr_offset, max_qr_offset),
-                         random.randint(-max_qr_offset, max_qr_offset))
+
             qr_rotation = random.randint(-max_qr_rotation, max_qr_rotation)
+            qr_offset_x = random.randint(-max_qr_offset, max_qr_offset)
+            qr_offset_y = random.randint(-max_qr_offset, max_qr_offset)
 
-            flyer_name = f"flyer_{os.path.splitext(file)[0]}_{i}.png"
-            save_path = os.path.join(output_folder, flyer_name)
+            create_flyer(
+                qr_img,
+                flyer_path,
+                title_font_size=title_font_size,
+                body_font_size=body_font_size,
+                qr_rotation=qr_rotation,
+                qr_offset=(qr_offset_x, qr_offset_y),
+                glitch_offset=glitch_offset,
+                bg_noise=True,
+                title_style=title_style
+            )
 
-            create_flyer(qr_code, save_path,
-                         title_font_size=title_font_size,
-                         body_font_size=body_font_size,
-                         qr_offset=qr_offset,
-                         qr_rotation=qr_rotation,
-                         glitch_offset=glitch_offset,
-                         title_style=title_style)
-
-    print("\nDone generating flyers! Check your 'flyers_out' folder.")
+    print(f"All flyers created in folder:\n{output_folder}")
 
 if __name__ == "__main__":
     main()
